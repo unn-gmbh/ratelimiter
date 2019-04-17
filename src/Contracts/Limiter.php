@@ -27,7 +27,7 @@ interface Limiter
      *
      * @param int $duration in minutes for the limit to take effect
      */
-    public function timeout(int $duration = 1): void;
+    public function timeout(int $duration = 1);
 
     /**
      * Increment the counter for the rate limiter.

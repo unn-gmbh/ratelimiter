@@ -136,7 +136,7 @@ class Limiter implements Contract
      *
      * @param int $duration in minutes for the limit to take effect
      */
-    public function timeout(int $duration = 1): void
+    public function timeout(int $duration = 1)
     {
         if ($this->hasTimeout()) {
             return;
@@ -213,7 +213,7 @@ class Limiter implements Contract
     /**
      * Clear the hits and timeout timer for the rate limiter.
      */
-    public function clear(): void
+    public function clear()
     {
         $this->reset();
 
@@ -247,7 +247,7 @@ class Limiter implements Contract
     /**
      * Get the last bucket in the stack.
      *
-     * @return \ArtisanSdk\RateLimiter\Bucket
+     * @return \ArtisanSdk\RateLimiter\Contracts\Bucket
      */
     protected function lastBucket()
     {
