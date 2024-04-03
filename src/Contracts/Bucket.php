@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ArtisanSdk\RateLimiter\Contracts;
 
 use Illuminate\Contracts\Support\Arrayable;
@@ -18,8 +20,7 @@ interface Bucket extends Arrayable, Jsonable, JsonSerializable
     /**
      * Get or set the timer for the bucket in UNIX seconds.
      *
-     * @param float $value
-     *
+     * @param  float  $value
      * @return float|\ArtisanSdk\RateLimiter\Contracts\Bucket
      */
     public function timer($value = null);
@@ -27,46 +28,36 @@ interface Bucket extends Arrayable, Jsonable, JsonSerializable
     /**
      * Get or set the maximum capacity of the bucket.
      *
-     * @param int $value
      *
      * @return int|\ArtisanSdk\RateLimiter\Contracts\Bucket
      */
-    public function max(int $value = null);
+    public function max(?int $value = null);
 
     /**
      * Get or set the rate per second the bucket leaks.
      *
-     * @param int|float $value
-     *
+     * @param  int|float  $value
      * @return float|\ArtisanSdk\RateLimiter\Contracts\Bucket
      */
     public function rate($value = null);
 
     /**
      * Is the bucket full?
-     *
-     * @return bool
      */
     public function isFull(): bool;
 
     /**
      * Is the bucket empty?
-     *
-     * @return bool
      */
     public function isEmpty(): bool;
 
     /**
      * Reset the bucket to empty.
-     *
-     * @return \ArtisanSdk\RateLimiter\Contracts\Bucket
      */
-    public function reset(): Bucket;
+    public function reset(): self;
 
     /**
      * Configure the setting for the bucket.
-     *
-     * @param array $settings
      *
      * @return \ArtisanSdk\RateLimiter\Contracts\Bucket
      */

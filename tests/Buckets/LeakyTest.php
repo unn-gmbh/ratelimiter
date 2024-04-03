@@ -1,8 +1,11 @@
 <?php
 
-namespace ArtisanSdk\RateLimiter\Tests;
+declare(strict_types=1);
+
+namespace ArtisanSdk\RateLimiter\Tests\Buckets;
 
 use ArtisanSdk\RateLimiter\Buckets\Leaky;
+use ArtisanSdk\RateLimiter\Tests\TestCase;
 use Carbon\Carbon;
 
 class LeakyTest extends TestCase
@@ -38,8 +41,8 @@ class LeakyTest extends TestCase
     {
         $settings = [
             'timer' => 1234567890.123,
-            'max'   => 10,
-            'rate'  => 0.5,
+            'max' => 10,
+            'rate' => 0.5,
             'drips' => 8,
         ];
 

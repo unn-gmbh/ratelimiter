@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ArtisanSdk\RateLimiter\Buckets;
 
 use ArtisanSdk\RateLimiter\Contracts\Bucket;
@@ -23,10 +25,8 @@ class Evented extends Leaky
 
     /**
      * {@inheritdoc}
-     *
-     * @param \Illuminate\Contracts\Events\Dispatcher $events
      */
-    public function __construct(string $key = 'default', int $max = 60, $rate = 1, Dispatcher $events)
+    public function __construct(Dispatcher $events, string $key = 'default', int $max = 60, $rate = 1)
     {
         parent::__construct($key, $max, $rate);
 
@@ -84,8 +84,7 @@ class Evented extends Leaky
     /**
      * Dispatch an event until the first non-null response is returned.
      *
-     * @param string|object $event
-     *
+     * @param  string|object  $event
      * @return array|null
      */
     protected function until($event)
@@ -96,8 +95,7 @@ class Evented extends Leaky
     /**
      * Dispatch an event and call the listeners.
      *
-     * @param string|object $event
-     *
+     * @param  string|object  $event
      * @return array|null
      */
     protected function fire($event)

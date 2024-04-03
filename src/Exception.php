@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ArtisanSdk\RateLimiter;
 
 use Symfony\Component\HttpFoundation\Response;
@@ -10,12 +12,10 @@ class Exception extends HttpException
     /**
      * Create a new exception instance.
      *
-     * @param string|null     $message
-     * @param \Exception|null $previous
-     * @param array           $headers
-     * @param int             $code
+     * @param  string|null  $message
+     * @param  int  $code
      */
-    public function __construct($message = null, \Exception $previous = null, array $headers = [], $code = 0)
+    public function __construct($message = null, ?\Exception $previous = null, array $headers = [], $code = 0)
     {
         parent::__construct(Response::HTTP_TOO_MANY_REQUESTS, $message, $previous, $headers, $code);
     }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ArtisanSdk\RateLimiter\Tests\Stubs;
 
 class Route
@@ -41,8 +43,7 @@ class Route
     /**
      * Get the action array or one of its properties for the route.
      *
-     * @param string|null $key
-     *
+     * @param  string|null  $key
      * @return mixed
      */
     public function getAction($key = null)

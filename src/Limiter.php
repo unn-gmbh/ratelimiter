@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ArtisanSdk\RateLimiter;
 
+use ArtisanSdk\RateLimiter\Buckets\Evented;
 use ArtisanSdk\RateLimiter\Contracts\Bucket;
 use ArtisanSdk\RateLimiter\Contracts\Limiter as Contract;
 use Carbon\Carbon;
@@ -36,20 +39,19 @@ class Limiter implements Contract
 
     /**
      * Create a new rate limiter instance.
-     *
-     * @param \Illuminate\Contracts\Cache\Repository   $cache
-     * @param \ArtisanSdk\RateLimiter\Contracts\Bucket $bucket
-     * @param \Illuminate\Contracts\Events\Dispatcher  $events
      */
-    public function __construct(Cache $cache, Bucket $bucket, Dispatcher $events = null)
+    public function __construct(Cache $cache, Bucket $bucket, ?Dispatcher $events = null)
     {
         $this->cache = $cache;
         $this->events = $events;
 
         $key = $bucket->key();
-        if (false !== stripos($key, ':')) {
-            list($parent, $route) = explode(':', $key, 2);
-            $parent = new $bucket($parent, $bucket->max(), $bucket->rate(), $this->events);
+        if (stripos($key, ':') !== false) {
+            [$parent, $route] = explode(':', $key, 2);
+            $parent = $bucket instanceof Evented
+                ? (new $bucket($this->events, $parent, $bucket->max(), $bucket->rate()))
+                : (new $bucket($parent, $bucket->max(), $bucket->rate()));
+
             $this->buckets[] = $parent->configure(
                 $this->cache->get($parent->key(), $bucket->toArray())
             );
@@ -63,32 +65,36 @@ class Limiter implements Contract
     /**
      * Configure the limiter.
      *
-     * @param string    $key  for the rate
-     * @param int       $max  hits against the limiter
-     * @param int|float $rate in which limiter decays or leaks
-     *
+     * @param  string  $key  for the rate
+     * @param  int  $max  hits against the limiter
+     * @param  int|float  $rate  in which limiter decays or leaks per second
      * @return \ArtisanSdk\RateLimiter\Contracts\Limiter
      */
     public function configure(string $key, int $max, $rate)
     {
         $bucket = $this->lastBucket();
 
+        if ($bucket->key() !== $key) {
+            $bucket->reset();
+            $this->cache->forget($bucket->key());
+        }
+
         $settings = [
             'drips' => $bucket->drips(),
             'timer' => $bucket->timer(),
         ];
-
-        if ($bucket->key() !== $key) {
-            $this->reset();
-        }
 
         $original = array_pop($this->buckets);
 
         if ($existing = $this->cache->get($key)) {
             $settings = array_merge($settings, $existing, compact('max', 'rate'));
         }
-        $configured = (new $original($key, $max, $rate, $this->events))
-            ->configure($settings);
+
+        $instance = $original instanceof Evented
+            ? (new $original($this->events, $key, $max, $rate))
+            : (new $original($key, $max, $rate));
+
+        $configured = $instance->configure($settings);
 
         array_push($this->buckets, $configured);
 
@@ -97,8 +103,6 @@ class Limiter implements Contract
 
     /**
      * Determine if the limit threshold has been exceeded.
-     *
-     * @return bool
      */
     public function exceeded(): bool
     {
@@ -117,8 +121,6 @@ class Limiter implements Contract
 
     /**
      * Does the rate limiter have a timeout?
-     *
-     * @return bool
      */
     public function hasTimeout(): bool
     {
@@ -132,11 +134,11 @@ class Limiter implements Contract
     }
 
     /**
-     * Limit additional hits for the duration in minutes.
+     * Limit additional hits for the duration in seconds.
      *
-     * @param int $duration in minutes for the limit to take effect
+     * @param  int  $duration  in seconds for the limit to take effect
      */
-    public function timeout(int $duration = 1): void
+    public function timeout(int $duration = 60): void
     {
         if ($this->hasTimeout()) {
             return;
@@ -144,15 +146,13 @@ class Limiter implements Contract
 
         $this->cache->put(
             $this->getTimeoutKey(),
-            (int) $this->lastBucket()->timer() + ($duration * 60),
+            ((int) $this->lastBucket()->timer()) + $duration,
             $duration
         );
     }
 
     /**
      * Increment the counter for the rate limiter.
-     *
-     * @return int
      */
     public function hit(): int
     {
@@ -161,7 +161,7 @@ class Limiter implements Contract
             $this->cache->put(
                 $bucket->key(),
                 $bucket->toArray(),
-                ceil($bucket->duration() / 60)
+                (int) max(1, ceil($bucket->duration())) // $ttl to $seconds conversion requires minimally 1s
             );
         }
 
@@ -170,8 +170,6 @@ class Limiter implements Contract
 
     /**
      * Get the maximum number of hits allowed by the limiter.
-     *
-     * @return int
      */
     public function limit(): int
     {
@@ -180,8 +178,6 @@ class Limiter implements Contract
 
     /**
      * Get the number of hits against the rate limiter.
-     *
-     * @return int
      */
     public function hits(): int
     {
@@ -190,8 +186,6 @@ class Limiter implements Contract
 
     /**
      * Reset the number of hits for the rate limiter.
-     *
-     * @return bool
      */
     public function reset(): bool
     {
@@ -202,8 +196,6 @@ class Limiter implements Contract
 
     /**
      * Get the number of remaining hits allowed by the limiter.
-     *
-     * @return int
      */
     public function remaining(): int
     {
@@ -212,18 +204,20 @@ class Limiter implements Contract
 
     /**
      * Clear the hits and timeout timer for the rate limiter.
+     *
+     * @return \ArtisanSdk\RateLimiter\Contracts\Limiter
      */
-    public function clear(): void
+    public function clear()
     {
         $this->reset();
 
         $this->cache->forget($this->getTimeoutKey());
+
+        return $this;
     }
 
     /**
      * Get the number of seconds until the limiter is available again.
-     *
-     * @return int
      */
     public function backoff(): int
     {
@@ -232,12 +226,8 @@ class Limiter implements Contract
 
     /**
      * Get the timeout key.
-     *
-     * @param string $key
-     *
-     * @return string
      */
-    protected function getTimeoutKey(string $key = null): string
+    protected function getTimeoutKey(?string $key = null): string
     {
         $key = $key ?? $this->lastBucket()->key();
 

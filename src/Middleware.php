@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ArtisanSdk\RateLimiter;
 
 use ArtisanSdk\RateLimiter\Contracts\Resolver;
@@ -37,8 +39,8 @@ class Middleware
     /**
      * Inject the rate limiter dependencies.
      *
-     * @param \ArtisanSdk\RateLimiter\Contracts\Limiter         $limiter
-     * @param string|\ArtisanSdk\RateLimiter\Contracts\Resolver $resolver
+     * @param  \ArtisanSdk\RateLimiter\Contracts\Limiter  $limiter
+     * @param  string|\ArtisanSdk\RateLimiter\Contracts\Resolver  $resolver
      */
     public function __construct(Limiter $limiter, $resolver = null)
     {
@@ -49,12 +51,10 @@ class Middleware
     /**
      * Handle an incoming request.
      *
-     * @param \Illuminate\Http\Request $request
-     * @param \Closure                 $next
+     * @param  \Illuminate\Http\Request  $request
+     * @return mixed
      *
      * @throws \ArtisanSdk\RateLimiter\Exception
-     *
-     * @return mixed
      */
     public function handle($request, Closure $next, ...$args)
     {
@@ -64,11 +64,7 @@ class Middleware
 
         if ($limiter->exceeded()) {
             $limiter->timeout($resolver->duration());
-            throw $this->buildException(
-                $limiter->limit(),
-                $limiter->remaining(),
-                $limiter->backoff()
-            );
+            throw $this->buildException($limiter->limit(), $limiter->remaining(), $limiter->backoff());
         }
 
         $limiter->hit();
@@ -84,12 +80,9 @@ class Middleware
     /**
      * Make an instance of the request resolver.
      *
-     * @param \Illuminate\Http\Request $request
-     * @param array                    $args
+     * @param  \Illuminate\Http\Request  $request
      *
      * @throws \InvalidArgumentException for an invalid resolver class
-     *
-     * @return \ArtisanSdk\RateLimiter\Contracts\Resolver
      */
     protected function makeResolver(Request $request, array $args = []): Resolver
     {
@@ -100,7 +93,7 @@ class Middleware
         }
 
         $resolver = new $class($request, ...$args);
-        if ( ! $resolver instanceof Resolver) {
+        if (! $resolver instanceof Resolver) {
             throw new InvalidArgumentException(get_class($resolver).' must be an instance of '.Resolver::class.'.');
         }
 
@@ -109,8 +102,6 @@ class Middleware
 
     /**
      * Configure the limiter from the resolver.
-     *
-     * @param \ArtisanSdk\RateLimiter\Contracts\Resolver $resolver
      *
      * @return \ArtisanSdk\RateLimiter\Contracts\Limiter
      */
@@ -128,11 +119,9 @@ class Middleware
     /**
      * Create a Too Many Requests exception.
      *
-     * @param int $limit     of hits allowed
-     * @param int $remaining hits allowed
-     * @param int $backoff   before next hit should be attempted
-     *
-     * @return \ArtisanSdk\RateLimiter\Exception
+     * @param  int  $limit  of hits allowed
+     * @param  int  $remaining  hits allowed
+     * @param  int  $backoff  before next hit should be attempted
      */
     protected function buildException(int $limit, int $remaining, int $backoff): Exception
     {
@@ -144,14 +133,11 @@ class Middleware
     /**
      * Add the limit header information to the given response.
      *
-     * @param \Symfony\Component\HttpFoundation\Response $response
-     * @param int                                        $limit     of hits allowed
-     * @param int                                        $remaining hits allowed
-     * @param int                                        $backoff   before next hit should be attempted
-     *
-     * @return \Symfony\Component\HttpFoundation\Response
+     * @param  int  $limit  of hits allowed
+     * @param  int  $remaining  hits allowed
+     * @param  int  $backoff  before next hit should be attempted
      */
-    protected function addHeaders(Response $response, int $limit, int $remaining, int $backoff = null): Response
+    protected function addHeaders(Response $response, int $limit, int $remaining, ?int $backoff = null): Response
     {
         $response->headers->add(
             $this->getHeaders($limit, $remaining, $backoff)
@@ -163,20 +149,18 @@ class Middleware
     /**
      * Get the limit headers information.
      *
-     * @param int $limit     of hits allowed
-     * @param int $remaining hits allowed
-     * @param int $backoff   before next hit should be attempted
-     *
-     * @return array
+     * @param  int  $limit  of hits allowed
+     * @param  int  $remaining  hits allowed
+     * @param  int  $backoff  before next hit should be attempted
      */
-    protected function getHeaders(int $limit, int $remaining, int $backoff = null): array
+    protected function getHeaders(int $limit, int $remaining, ?int $backoff = null): array
     {
         $headers = [
-            'X-RateLimit-Limit'     => $limit,
+            'X-RateLimit-Limit' => $limit,
             'X-RateLimit-Remaining' => $remaining,
         ];
 
-        if ( ! is_null($backoff)) {
+        if (! is_null($backoff)) {
             $headers['Retry-After'] = $backoff;
             $headers['X-RateLimit-Reset'] = Carbon::now()->addSeconds($backoff)->getTimestamp();
         }

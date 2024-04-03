@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ArtisanSdk\RateLimiter\Resolvers;
 
 use Symfony\Component\HttpFoundation\Request;
@@ -16,11 +18,10 @@ class Tag extends User
     /**
      * Setup the resolver.
      *
-     * @param \Illuminate\Http\Request $request
-     * @param string                   $tag
-     * @param int|string               $max
-     * @param int|float|string         $rate
-     * @param int|string               $duration
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int|string  $max
+     * @param  int|float|string  $rate
+     * @param  int|string  $duration
      */
     public function __construct(Request $request, string $tag, $max = null, $rate = null, $duration = null)
     {
@@ -31,8 +32,6 @@ class Tag extends User
 
     /**
      * Get the resolver key used by the rate limiter for the unique request.
-     *
-     * @return string
      */
     public function key(): string
     {
@@ -41,8 +40,6 @@ class Tag extends User
 
     /**
      * Get the tag used as the rate limiter key.
-     *
-     * @return string
      */
     public function tag(): string
     {

@@ -1,13 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ArtisanSdk\RateLimiter\Resolvers;
 
 class Route extends User
 {
     /**
      * Get the resolver key used by the rate limiter for the unique request.
-     *
-     * @return string
      */
     public function key(): string
     {
@@ -20,7 +20,7 @@ class Route extends User
         }
 
         $class = $route->getAction('uses');
-        if ( ! is_null($class) && is_string($class)) {
+        if (! is_null($class) && is_string($class)) {
             return $prefix.':'.sha1($class);
         }
 

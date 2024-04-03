@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ArtisanSdk\RateLimiter\Resolvers;
 
 use ArtisanSdk\RateLimiter\Contracts\Resolver;
@@ -31,7 +33,7 @@ class User implements Resolver
     protected $rate;
 
     /**
-     * The duration in minutes the rate limiter will timeout.
+     * The duration in seconds the rate limiter will timeout.
      *
      * @var int|string
      */
@@ -47,30 +49,28 @@ class User implements Resolver
     /**
      * Setup the resolver.
      *
-     * @param \Illuminate\Http\Request $request
-     * @param int|string               $max
-     * @param int|float|string         $rate
-     * @param int|string               $duration
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int|string  $max
+     * @param  int|float|string  $rate
+     * @param  int|string  $duration
      */
     public function __construct(Request $request, $max = null, $rate = null, $duration = null)
     {
         $this->request = $request;
         $this->max = $max ?? 60;
         $this->rate = $rate ?? 1;
-        $this->duration = $duration ?? 1;
+        $this->duration = $duration ?? 60;
     }
 
     /**
      * Get the resolver key used by the rate limiter for the unique request.
      *
      * @throws \RuntimeException
-     *
-     * @return string
      */
     public function key(): string
     {
         if ($user = $this->resolveUser()) {
-            return sha1($user->getAuthIdentifier());
+            return sha1((string) $user->getAuthIdentifier());
         }
 
         if ($route = $this->request->route()) {
@@ -86,8 +86,6 @@ class User implements Resolver
 
     /**
      * Get the max number of requests allowed by the rate limiter.
-     *
-     * @return int
      */
     public function max(): int
     {
@@ -96,8 +94,6 @@ class User implements Resolver
 
     /**
      * Get the replenish rate in requests per second for the rate limiter.
-     *
-     * @return float
      */
     public function rate(): float
     {
@@ -105,9 +101,7 @@ class User implements Resolver
     }
 
     /**
-     * Get the duration in minutes the rate limiter will timeout.
-     *
-     * @return int
+     * Get the duration in seconds the rate limiter will timeout.
      */
     public function duration(): int
     {
@@ -117,17 +111,16 @@ class User implements Resolver
     /**
      * Parse the parameter value if the user is authenticated or not.
      *
-     * @param int|string $parameter
-     *
+     * @param  int|string  $parameter
      * @return int|float
      */
     protected function parse($parameter)
     {
-        if (false !== stripos($parameter, '|')) {
+        if (is_string($parameter) && stripos($parameter, '|') !== false) {
             $parameter = explode('|', $parameter, 2)[$this->resolveUser() ? 1 : 0];
         }
 
-        if ( ! is_numeric($parameter) && $this->resolveUser()) {
+        if (! is_numeric($parameter) && $this->resolveUser()) {
             return $this->resolveUser()->{$parameter};
         }
 
@@ -148,8 +141,6 @@ class User implements Resolver
 
     /**
      * Set the user resolver.
-     *
-     * @param \Closure $resolver
      */
     public function setUserResolver(Closure $resolver)
     {
